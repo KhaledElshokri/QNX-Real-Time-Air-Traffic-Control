@@ -7,7 +7,7 @@
 
 class Radar {
 private:
-    std::vector<Aircraft> aircraftList;
+    std::vector<Aircraft> mAircraftList;
 
 public:
 
@@ -15,7 +15,7 @@ public:
     void updatePositions();
 
     // Controls aircrafts and triggers response from aircraft by id
-    void requestPosition(int id);
+    void requestPosition(int iId);
 };
 
 

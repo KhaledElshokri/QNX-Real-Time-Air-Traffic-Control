@@ -1,10 +1,3 @@
-/*
- * Display.h
- *
- *  Created on: Nov. 4, 2024
- *      Author: Khale
- */
-
 #ifndef DISPLAY_H_
 #define DISPLAY_H_
 
@@ -17,13 +10,10 @@ public:
 
 	// Renders Aircraft positions from the list
 	// TODO: use openGl to render the aircrafts positions
-    void render(const std::vector<Aircraft>& aircraftList);
+    void render(const std::vector<Aircraft>& iAircraftList);
 
     // Display Violations
-    void notifyAlert(int id);
+    void notifyAlert(int iId);
 };
-
-
-
 
 #endif /* DISPLAY_H_ */

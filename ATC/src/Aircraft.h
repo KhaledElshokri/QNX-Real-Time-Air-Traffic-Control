@@ -1,4 +1,3 @@
-
 #ifndef AIRCRAFT_H_
 #define AIRCRAFT_H_
 
@@ -6,17 +5,17 @@
 
 class Aircraft {
 private:
-    int id;
-    float x, y, z;     // Position coordinates
-    float speedX, speedY, speedZ; // Speed coordinates
+    int mId;
+    float mX, mY, mZ;     // Position coordinates
+    float mSpeedX, mSpeedY, mSpeedZ; // Speed coordinates
 
 public:
 
     // Aircraft constructor
-    Aircraft(int id, float x, float y, float z, float speedX, float speedY, float speedZ);
+    Aircraft(int iId, float iX, float iY, float iZ, float iSpeedX, float iSpeedY, float iSpeedZ);
 
     // Getter for ID
-    int getID() const { return id; }
+    int getID() const { return mId; }
 
     // updates aircraft positions based on their speed
     void updatePosition();
