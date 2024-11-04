@@ -5,6 +5,7 @@
 
 class Aircraft {
 private:
+	int mEntryTime;
     int mId;
     float mX, mY, mZ;     // Position coordinates
     float mSpeedX, mSpeedY, mSpeedZ; // Speed coordinates
@@ -12,7 +13,7 @@ private:
 public:
 
     // Aircraft constructor
-    Aircraft(int iId, float iX, float iY, float iZ, float iSpeedX, float iSpeedY, float iSpeedZ);
+    Aircraft(int iEntryTime, int iId, float iX, float iY, float iZ, float iSpeedX, float iSpeedY, float iSpeedZ);
 
     // Getter for ID
     int getID() const { return mId; }
