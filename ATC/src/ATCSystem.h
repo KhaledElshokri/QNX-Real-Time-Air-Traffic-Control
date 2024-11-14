@@ -8,13 +8,10 @@
 
 class ATCSystem {
 private:
-    Radar mRadar;
-    Display mDisplay;
+    Radar radar;
+    Display display;
 
 public:
-
-    // ATC constructor
-    ATCSystem(Display iDisplay, Radar iRadar);
 
     // While loop to continously run the system
     void run();

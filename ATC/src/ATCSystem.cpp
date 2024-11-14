@@ -1,10 +1,20 @@
 #include "ATCSystem.h"
 
-ATCSystem::ATCSystem(Display iDisplay, Radar iRadar):
-	mDisplay(iDisplay), mRadar(iRadar)
-{
+/*this is the Computer System
+ Responsible for:
+	- Does periodic computations to determine if there is or will be a violation of airspace contraints.
+	- Sends alerts/notifications of violation to the operator.
+	- Sends to the Data Display to show on the screen of the controller:
+		- ID of aircraft
+		- Position of aircraft
+	- Stores info into log file every 30 seconds
+*/
 
-}
+//ATCSystem::ATCSystem(Display iDisplay, Radar iRadar):
+//	mDisplay(iDisplay), mRadar(iRadar)
+//{
+//
+//}
 
 // While loop to continously run the system
 void ATCSystem::run()
