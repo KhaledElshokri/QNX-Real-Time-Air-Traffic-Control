@@ -13,20 +13,36 @@
 		- Aircrafts position. X Y Z
  */
 
+/*
+ * PSR: To simulate the radar, we have a knownAircraftList, which we sort by nearness to the center of
+ * the zone.
+ * SSR: With this new sorted list, we send a request to each aircraft, and store their responses in
+ * radar findings, and return this radarFindings list.
+ */
+
 #include "Aircraft.h"
 #include <vector>
 
 class Radar {
 private:
-    std::vector<Aircraft> aircraftList;
+	std::vector<Aircraft> initialAircraftList;
 
 public:
+    Radar(std::vector<Aircraft> aircraftList);
+
+    int getSizeOfInitialList(){
+    	int n = 0;
+    	n = initialAircraftList.size();
+    	return n;
+    }
 
     // updates the aircrafts positions in the list
     void updatePositions();
 
     // Controls aircrafts and triggers response from aircraft by id
     void requestPosition(int id);
+
+    std::vector<Aircraft> runRadar();
 };
 
 

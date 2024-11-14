@@ -10,7 +10,12 @@ using namespace std;
 #include "ATCSystem.h"
 #include "Aircraft.h"
 #include "MockStorage.h"
+#include "Radar.h"
+#include "ATCSystem.h"
+#include "CommunicationSystem.h"
+#include "Display.h"
 
+//global mutex for all threads to ensure they dont write to cout at the same time
 std::mutex coutMutex;
 
 void parseAircraftData(const string& data, vector<Aircraft>& aircraftList) {
@@ -33,7 +38,7 @@ void parseAircraftData(const string& data, vector<Aircraft>& aircraftList) {
 
 
 void startSystem(string inputOption){
-	vector<Aircraft> aircraftList;
+	vector<Aircraft> initialAircraftList;
 	MockStorage mockStorage;
 	string data;
 
@@ -47,25 +52,33 @@ void startSystem(string inputOption){
 		data = mockStorage.congestedTraffic;
 	}
 
-	parseAircraftData(data, aircraftList);
-	cout << "Parsed " << aircraftList.size() << " aircraft entries for " << inputOption << " traffic." << endl;
-
-	//initialize main threads
+	parseAircraftData(data, initialAircraftList);
+	cout << "Parsed " << initialAircraftList.size() << " aircraft entries for " << inputOption << " traffic." << endl;
 
 
 	//initialize plane threads
-	pthread_t planeThreadArray[aircraftList.size()];
-	for(size_t i = 0; i < aircraftList.size(); i++){
+	pthread_t planeThreadArray[initialAircraftList.size()];
+	for(size_t i = 0; i < initialAircraftList.size(); i++){
 		//				id,                 attr_struct,
-		//              v                   v      start routine     attribute pointer
-		pthread_create(&planeThreadArray[i], NULL, &Aircraft::startThread, &aircraftList[i]);
+		//              v                   v      start routine           attribute pointer
+		pthread_create(&planeThreadArray[i], NULL, &Aircraft::startThread, &initialAircraftList[i]);
 		sleep(1); //sleep for 1 second
 	}
+
+	//initialize components
+	Radar radar(initialAircraftList);
+	Display display;
+	CommunicationSystem commSystem;
+	ATCSystem ATCSys(radar, display, commSystem);
+
+	//initialize main threads
+	pthread_t ATCSystemThread;
+	pthread_create(&ATCSystemThread, NULL, &ATCSystem::startThread, &ATCSys);
 
 	//sleep this thread for 120 seconds, letting the ATC simulation run.
 	sleep(120);
 
-	for (size_t i = 0; i < aircraftList.size(); i++) {
+	for (size_t i = 0; i < initialAircraftList.size(); i++) {
 	    pthread_join(planeThreadArray[i], nullptr);
 	}
 }
