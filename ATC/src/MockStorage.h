@@ -7,35 +7,29 @@ using namespace std;
    Doing it here avoids each teammate needing to type in each file
    individually into the VMBox terminal 							*/
 
+/*
+ * To check collisions, duplicate an entry and change its ID.
+ * If you have duplicate ID's, the program will crash.
+ */
+
 /*	Format of string:
   	EntryTime, ID, X, Y, Z, SpeedX, SpeedY, SpeedZ                  	*/
 
 class MockStorage {
 
+
+
 public:
 
 	MockStorage(){};
+
+	// right now, low traffic shouldnt have a predicted collision
 	string lowTraffic =
 		"0, 101, 5000, 2000, 15000, 250, -20, 30;\n"
-		"60, 1350, 14000, 2000, 12500, 255, -20, 25;\n"
+		"60, 1350, 14000, 2000, 12500, -20, 255, 25;\n"
 		"65, 1472, 5000, 14000, 11500, 245, -5, 35;\n"
 		"70, 1586, 8000, 3000, 13000, 260, -10, 20;\n";
 
-	/*
-	 * "5, 205, 8000, 4000, 17000, 240, -25, 20;\n"
-		"10, 312, 15000, 3000, 20000, 245, -15, 10;\n"
-		"15, 422, 2000, 7000, 15500, 260, -30, 35;\n"
-		"20, 501, 10000, 9000, 18500, 255, -20, 25;\n"
-		"25, 627, 3000, 6000, 10500, 265, -10, 40;\n"
-		"30, 738, 9000, 12000, 12500, 250, -15, 30;\n"
-		"35, 845, 12000, 1000, 8000, 245, -20, 20;\n"
-		"40, 956, 4000, 15000, 10000, 265, -25, 15;\n"
-		"45, 1073, 7000, 5000, 11000, 260, -30, 25;\n"
-		"50, 1188, 13000, 4000, 14500, 250, -10, 20;\n"
-		"55, 1234, 2000, 11000, 9500, 270, -15, 30;\n"
-	 *
-	 *
-	 */
 	string mediumTraffic =
 		"0, 101, 5000, 2000, 10000, 250, -20, 30;\n"
 		"5, 102, 5050, 2050, 9950, 260, -15, 25;\n"

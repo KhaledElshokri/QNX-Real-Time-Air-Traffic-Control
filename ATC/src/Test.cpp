@@ -75,6 +75,9 @@ void startSystem(string inputOption){
 	pthread_t ATCSystemThread;
 	pthread_create(&ATCSystemThread, NULL, &ATCSystem::startThread, &ATCSys);
 
+	pthread_t displayThread;
+	pthread_create(&displayThread, NULL, &Display::startThread, &radar);
+
 	//sleep this thread for 120 seconds, letting the ATC simulation run.
 	sleep(120);
 

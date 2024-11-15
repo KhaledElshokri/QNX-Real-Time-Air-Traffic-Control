@@ -76,7 +76,7 @@ std::vector<Aircraft> Radar::runRadar() {
 
 		//if aircraft didnt reply
 		if(reply.flightId == -1){
-			perror("No reply from aircraft");
+			perror("No reply from Aircraft");
 		}
 
 		Aircraft aircraft(reply.flightId, reply.X, reply.Y, reply.Z, reply.mSpeedX, reply.mSpeedY, reply.mSpeedZ);

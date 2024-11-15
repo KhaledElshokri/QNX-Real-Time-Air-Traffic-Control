@@ -6,8 +6,6 @@
 #include <sys/dispatch.h>
 
 
-// Using message based communications
-
 extern std::mutex coutMutex;
 
 typedef struct {
@@ -85,14 +83,8 @@ void* Aircraft::start()
 {
 	{
 		std::lock_guard<std::mutex> guard(coutMutex);
-		std::cout << "Aircraft Thread started" << std::endl << std::flush;
+		std::cout << "Aircraft: Aircraft Thread started" << std::endl << std::flush;
 	}
-
-	/*needs to:
-		- IMPLEMENTED listen for message requests from radar
-		- IMPLEMENTED update its positions
-	 */
-
 
 	// Create timer to update plane location.
 	timer_t plane_timer_id;

@@ -15,10 +15,18 @@ public:
 
 	// Renders Aircraft positions from the list
 	// TODO: use openGl to render the aircrafts positions
-    void render(const std::vector<Aircraft>& aircraftList);
+    void renderGrid(std::vector<Aircraft> givenAircraftData);
 
     // Display Violations
     void notifyAlert(int id);
+
+    void* start();
+    void* startRadarListener();
+    void* startViolationListener();
+
+    static void* startThread(void* context);
+    static void* startRadarListenerThread(void* context);
+    static void* startViolationListenerThread(void* context);
 };
 
 
