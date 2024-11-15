@@ -17,12 +17,23 @@ private:
 public:
 	int getId() const { return mId; }
 	int getID() const { return mId; }
-	float getXPos() const {return mX;};
-	float getYPos() const {return mY;};
-	float getZPos() const {return mZ;};
-	float getXSpeed() const {return mSpeedX;};
-	float getYSpeed() const {return mSpeedY;};
-	float getZSpeed() const {return mSpeedZ;};
+	float getXPos() const { return mX; }
+	float getYPos() const { return mY; }
+	float getZPos() const { return mZ; }
+	float getXSpeed() const { return mSpeedX; }
+	float getYSpeed() const { return mSpeedY; }
+	float getZSpeed() const { return mSpeedZ; }
+
+	void setXPos(float iX) { mX = iX; }
+	void setYPos(float iY) { mY = iY; }
+	void setZPos(float iZ) { mZ = iZ; }
+	void setPos(float iX, float iY, float iZ) { mX = iX; mY = iY; mZ = iZ; }
+	void setXSpeed(float iSpeedX) { mSpeedX = iSpeedX; }
+	void setYSpeed(float iSpeedY) { mSpeedY = iSpeedY; }
+	void setZSpeed(float iSpeedZ) { mSpeedZ = iSpeedZ; }
+	void setSpeed(float iSpeedX, float iSpeedY, float iSpeedZ) {
+		mSpeedX = iSpeedX; mSpeedY = iSpeedY; mSpeedZ = iSpeedZ; }
+
 	void coutDebug();
 
     // Aircraft constructor

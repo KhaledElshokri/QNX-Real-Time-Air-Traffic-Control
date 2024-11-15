@@ -13,6 +13,9 @@ private:
     Display display;
     CommunicationSystem commSystem;
 
+    //how far forward we predict collisions
+    int predictionTimeSeconds = 180;
+
 public:
     ATCSystem(Radar iRadar, Display iDisplay, CommunicationSystem iCommSystem);
 
@@ -22,12 +25,12 @@ public:
     void run();
 
     // Checks for aircraft violations
-    void checkViolations();
+    void checkViolations(std::vector<Aircraft>* radarFindings);
 
     // Gives a log statement of the airspace
     void logState();
 
-    static void checkAirspaceViolations(union sigval sv);
+    static void monitorAirspace(union sigval sv);
 
     //thread routine
 	void* start();
