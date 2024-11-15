@@ -14,33 +14,21 @@ using namespace std;
 #include "ATCSystem.h"
 #include "CommunicationSystem.h"
 #include "Display.h"
+#include "OperatorConsole.h"
 
-//global mutex for all threads to ensure they dont write to cout at the same time
+// Global mutex for cout so threads dont all write to it.
 std::mutex coutMutex;
-
-void parseAircraftData(const string& data, vector<Aircraft>& aircraftList) {
-    stringstream dataStream(data);
-    string line;
-
-    while (getline(dataStream, line, ';')) {
-        stringstream ss(line);
-        int entryTime, id;
-        float x, y, z, speedX, speedY, speedZ;
-        char comma;
-
-        if (ss >> entryTime >> comma >> id >> comma >> x >> comma >> y >> comma
-            >> z >> comma >> speedX >> comma >> speedY >> comma >> speedZ) {
-            Aircraft aircraft(entryTime, id, x, y, z, speedX, speedY, speedZ);
-            aircraftList.push_back(aircraft);
-        }
-    }
-}
-
 
 void startSystem(string inputOption){
 	vector<Aircraft> initialAircraftList;
 	MockStorage mockStorage;
 	string data;
+
+	// Initialize components
+	Display display;
+	CommunicationSystem commSystem;
+	OperatorConsole opConsole(commSystem);
+
 
 	if(inputOption == "Low"){
 		data = mockStorage.lowTraffic;
@@ -52,11 +40,28 @@ void startSystem(string inputOption){
 		data = mockStorage.congestedTraffic;
 	}
 
-	parseAircraftData(data, initialAircraftList);
+	// Parse aircrafts
+	stringstream dataStream(data);
+	string line;
+	while (getline(dataStream, line, ';')) {
+		stringstream ss(line);
+		int entryTime, id;
+		float x, y, z, speedX, speedY, speedZ;
+		char comma;
+
+		if (ss >> entryTime >> comma >> id >> comma >> x >> comma >> y >> comma
+			>> z >> comma >> speedX >> comma >> speedY >> comma >> speedZ) {
+			Aircraft aircraft(entryTime, id, x, y, z, speedX, speedY, speedZ, commSystem);
+			initialAircraftList.push_back(aircraft);
+
+		}
+	}
+
 	cout << "Parsed " << initialAircraftList.size() << " aircraft entries for " << inputOption << " traffic." << endl;
 
+	Radar radar(initialAircraftList);
 
-	//initialize plane threads
+	// Initialize plane threads
 	pthread_t planeThreadArray[initialAircraftList.size()];
 	for(size_t i = 0; i < initialAircraftList.size(); i++){
 		//				id,                 attr_struct,
@@ -65,20 +70,25 @@ void startSystem(string inputOption){
 		sleep(1); //sleep for 1 second
 	}
 
-	//initialize components
-	Radar radar(initialAircraftList);
-	Display display;
-	CommunicationSystem commSystem;
 	ATCSystem ATCSys(radar, display, commSystem);
 
-	//initialize main threads
+	// Initialize and start main threads
 	pthread_t ATCSystemThread;
 	pthread_create(&ATCSystemThread, NULL, &ATCSystem::startThread, &ATCSys);
 
 	pthread_t displayThread;
 	pthread_create(&displayThread, NULL, &Display::startThread, &radar);
 
-	//sleep this thread for 120 seconds, letting the ATC simulation run.
+	pthread_t opConsoleThread;
+	pthread_create(&opConsoleThread, NULL, &OperatorConsole::startThread, &opConsole);
+
+	pthread_t radarThread;
+	pthread_create(&radarThread, NULL, &Radar::startListenerThread, &radar);
+
+	pthread_t commSystemThread;
+	pthread_create(&commSystemThread, NULL, &CommunicationSystem::startThread, &commSystem);
+
+	// Let simulator run for sleep(X) seconds
 	sleep(120);
 
 	for (size_t i = 0; i < initialAircraftList.size(); i++) {

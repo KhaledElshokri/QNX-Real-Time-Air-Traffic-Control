@@ -2,6 +2,7 @@
 #define AIRCRAFT_H_
 
 #include <iostream>
+#include "CommunicationSystem.h"
 
 class Aircraft {
 private:
@@ -9,6 +10,8 @@ private:
     int mId;
     float mX, mY, mZ;     // Position coordinates
     float mSpeedX, mSpeedY, mSpeedZ; // Speed coordinates
+
+    CommunicationSystem commSystem;
 
     // timer trigger method
 	static void updatePosition(union sigval sv);
@@ -23,6 +26,7 @@ public:
 	float getXSpeed() const { return mSpeedX; }
 	float getYSpeed() const { return mSpeedY; }
 	float getZSpeed() const { return mSpeedZ; }
+	CommunicationSystem getCommSystem() const { return commSystem; }
 
 	void setXPos(float iX) { mX = iX; }
 	void setYPos(float iY) { mY = iY; }
@@ -37,8 +41,8 @@ public:
 	void coutDebug();
 
     // Aircraft constructor
-    Aircraft(int iEntryTime, int iId, float iX, float iY, float iZ, float iSpeedX, float iSpeedY, float iSpeedZ);
-    Aircraft(int iId, float iX, float iY, float iZ, float iSpeedX, float iSpeedY, float iSpeedZ);
+    Aircraft(int iEntryTime, int iId, float iX, float iY, float iZ, float iSpeedX, float iSpeedY, float iSpeedZ, CommunicationSystem iCommSystem);
+    Aircraft(int iId, float iX, float iY, float iZ, float iSpeedX, float iSpeedY, float iSpeedZ, CommunicationSystem iCommSystem);
     // Getter for ID
 
     // Outputs a string to the radar
@@ -46,10 +50,12 @@ public:
 
     //thread routine
     void* start();
+    void* startCommListener();
 
     //routine started by the thread, actual activity defined in Plane::start();
     	//it returns a void* because its a generic pointer, and matches the type needed by pthread_start(...)
     static void* startThread(void* context);
+    static void* startCommListenerThread(void* context);
 };
 
 #endif /* AIRCRAFT_H_ */

@@ -36,13 +36,14 @@ public:
     	return n;
     }
 
-    // updates the aircrafts positions in the list
-    void updatePositions();
-
     // Controls aircrafts and triggers response from aircraft by id
     void requestPosition(int id);
 
     std::vector<Aircraft> runRadar();
+
+    void* startListener();
+
+    static void* startListenerThread(void* context);
 };
 
 
