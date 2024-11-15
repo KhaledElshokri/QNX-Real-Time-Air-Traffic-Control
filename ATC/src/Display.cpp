@@ -86,12 +86,6 @@ void Display::renderGrid(std::vector<Aircraft> aircraftData)
 
 }
 
-// Display Violations
-void Display::notifyAlert(int iId)
-{
-	// Display alarm when two aircrafts are close
-}
-
 void* Display::start(){
 	{
 		std::lock_guard<std::mutex> guard(coutMutex);
@@ -128,6 +122,8 @@ void* Display::startRadarListener(){
 	int rcvid;
 	radar_msg msg;
 
+	//used to update display every 5 seconds
+	int requestNumber = 0;
 	while(true){
 		rcvid = MsgReceive(attach->chid, &msg, sizeof(msg), NULL);
 		if (rcvid == -1) {
@@ -140,8 +136,10 @@ void* Display::startRadarListener(){
 		int status = MsgReply(rcvid, 0, &reply, sizeof(reply));
 
 		//render the grid with the data from ATCSystems radar
-		Display::renderGrid(msg.aircraftData);
-
+		requestNumber++;
+		if(requestNumber % 5 == 0){
+			Display::renderGrid(msg.aircraftData);
+		}
 	}
 }
 

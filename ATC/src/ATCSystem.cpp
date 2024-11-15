@@ -144,7 +144,7 @@ void ATCSystem::monitorAirspace(union sigval sv){
 	// check for airspace violations
 	ATCSys->checkViolations(&radarFindings);
 
-	// send radar data to the display
+	// send radar data to the display TODO NEED TO SEND ONLY EVERY 5 SECONDS
 	std::string channelName = "radar_to_display";
 	int coid = name_open(channelName.c_str(), 0);
 	if (coid == -1) {
