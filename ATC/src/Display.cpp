@@ -86,6 +86,49 @@ void Display::renderGrid(std::vector<Aircraft> aircraftData)
 
 }
 
+std::string Display::buildGrid(std::vector<Aircraft> aircraftData)
+{
+    int Size = 100000; // 100000x100000
+    int rowSize = 20, columnSize = 20;
+    int cellSize = Size / rowSize;
+
+    // Create grid and initialize to all '.' characters
+    char grid[rowSize][columnSize];
+    for (int i = 0; i < rowSize; ++i) {
+        for (int j = 0; j < columnSize; ++j) {
+            grid[i][j] = '.';
+        }
+    }
+
+    int xPosInGrid, yPosInGrid;
+
+    // Populate grid with aircraft locations
+    for (int i = 0; i < aircraftData.size(); i++) {
+        xPosInGrid = (aircraftData[i].getXPos()) / cellSize;
+        yPosInGrid = (aircraftData[i].getYPos()) / cellSize;
+
+        if (grid[xPosInGrid][yPosInGrid] == '.') {
+            grid[xPosInGrid][yPosInGrid] = '1';
+        } else {
+            grid[xPosInGrid][yPosInGrid] = (grid[xPosInGrid][yPosInGrid] + 1);
+        }
+    }
+
+    // Build the grid as a string
+    std::string gridString;
+    for (int i = rowSize - 1; i >= 0; --i) {
+        for (int j = 0; j < columnSize; ++j) {
+            gridString += grid[i][j];
+            gridString += ' ';
+        }
+        gridString += '\n';
+    }
+
+    gridString += "\n\n\n";
+
+    return gridString;
+}
+
 void* Display::start(){
 	{
 		std::lock_guard<std::mutex> guard(coutMutex);

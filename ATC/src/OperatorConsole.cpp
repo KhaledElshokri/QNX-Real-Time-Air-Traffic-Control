@@ -49,7 +49,7 @@ void* OperatorConsole::start(){
 		cinStop = false;
 		int fd = creat("/data/home/qnxuser/commandlog.txt", S_IRUSR | S_IWUSR | S_IXUSR);
 		if(fd == -1){
-			perror("OpConsole: Cannot create file");
+			perror("OpConsole: Cannot create log file");
 		}
 
 		std::string cmd;

@@ -18,6 +18,8 @@ using namespace std;
 
 // Global mutex for cout so threads dont all write to it.
 std::mutex coutMutex;
+std::mutex predTimeMutex;
+std::mutex ATCSystemRadarData;
 
 void startSystem(string inputOption){
 	vector<Aircraft> initialAircraftList;
@@ -67,7 +69,7 @@ void startSystem(string inputOption){
 		//				id,                 attr_struct,
 		//              v                   v      start routine           attribute pointer
 		pthread_create(&planeThreadArray[i], NULL, &Aircraft::startThread, &initialAircraftList[i]);
-		sleep(1); //sleep for 1 second
+		// I used to have a sleep here for 1 second, i removed it and everything still works. JUST INCASE
 	}
 
 	ATCSystem ATCSys(radar, display, commSystem);
@@ -89,11 +91,18 @@ void startSystem(string inputOption){
 	pthread_create(&commSystemThread, NULL, &CommunicationSystem::startThread, &commSystem);
 
 	// Let simulator run for sleep(X) seconds
-	sleep(120);
+	sleep(7);
 
 	for (size_t i = 0; i < initialAircraftList.size(); i++) {
 	    pthread_join(planeThreadArray[i], nullptr);
 	}
+
+	pthread_join(ATCSystemThread, nullptr);
+	pthread_join(displayThread, nullptr);
+	pthread_join(opConsoleThread, nullptr);
+	pthread_join(radarThread, nullptr);
+	pthread_join(commSystemThread, nullptr);
+
 }
 
 int main() {

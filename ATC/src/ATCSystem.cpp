@@ -1,3 +1,11 @@
+#include <mutex>
+#include <vector>
+#include <iostream>
+#include <unistd.h>
+#include <ctime>
+#include <sys/dispatch.h>
+#include "ATCSystem.h"
+
 /*this is the Computer System
  Responsible for:
 	- Does periodic computations to determine if there is or will be a violation of airspace contraints.
@@ -8,15 +16,9 @@
 	- Stores info into log file every 30 seconds
 */
 
-#include "ATCSystem.h"
-#include <mutex>
-#include <vector>
-#include <iostream>
-#include <unistd.h>
-#include <ctime>
-#include <sys/dispatch.h>
-
 extern std::mutex coutMutex;
+extern std::mutex predTimeMutex;
+extern std::mutex ATCSystemRadarData;
 
 typedef struct {
 	std::vector<Aircraft> aircraftData;
@@ -29,13 +31,27 @@ typedef struct{
 	bool received;
 } violation_msg;
 
+typedef struct {
+	bool received;
+	int predTime;
+} changepredtime_cmd;
+
+
 ATCSystem::ATCSystem(Radar iRadar, Display iDisplay, CommunicationSystem iCommSystem):
 		radar(iRadar), display(iDisplay), commSystem(iCommSystem)
 {
 
 }
 
+void deleteLogFile() {
+    const char* filePath = "/data/home/qnxuser/displaylog.txt";
 
+    if (unlink(filePath) == 0) {
+        std::cout << "File successfully deleted: " << filePath << std::endl;
+    } else {
+        perror("Error deleting file");
+    }
+}
 
 // Checks for aircraft violations
 	// If there are violations, it will alert the Operator and DataDisplay
@@ -49,18 +65,36 @@ void ATCSystem::checkViolations(std::vector<Aircraft>* radarOutput)
 
 	std::vector<Aircraft>& radarFindings = *radarOutput; //deref the pointer
 
+	{ // Critical Section
+		std::lock_guard<std::mutex> guard(ATCSystemRadarData);
+		radarData = radarFindings;
+	}
+
 	int VERTICAL_CONSTRAINT = 1000;
 	int HORIZONTAL_CONSTRAINT = 3000;
-
-	// !! Making a copy incase the operator changes it while it runs.
-	//    Might need to put a mutex on it since its shared
-	int currentPredictionTimeSeconds = predictionTimeSeconds;
 
 	//check each aircraft against each other aircraft
 	for (size_t i = 0; i < radarFindings.size(); i++) {
 		for (size_t j = i + 1; j < radarFindings.size(); j++) {
 			Aircraft aircraft1Projection = radarFindings[i];
 			Aircraft aircraft2Projection = radarFindings[j];
+
+			int predTime;
+			{
+				std::lock_guard<std::mutex> guard(predTimeMutex);
+				predTime = predictionTimeSeconds;
+			}
+
+			// predict N seconds ahead of time for each aircraft
+			float aircraft1ProjX = (radarFindings[i].getXPos() + (radarFindings[i].getXSpeed() * predTime));
+			float aircraft1ProjY = (radarFindings[i].getYPos() + (radarFindings[i].getYSpeed() * predTime));
+			float aircraft1ProjZ = (radarFindings[i].getZPos() + (radarFindings[i].getZSpeed() * predTime));
+			aircraft1Projection.setPos(aircraft1ProjX, aircraft1ProjY, aircraft1ProjZ);
+
+			float aircraft2ProjX = (radarFindings[j].getXPos() + (radarFindings[j].getXSpeed() * predTime));
+			float aircraft2ProjY = (radarFindings[j].getYPos() + (radarFindings[j].getYSpeed() * predTime));
+			float aircraft2ProjZ = (radarFindings[j].getZPos() + (radarFindings[j].getZSpeed() * predTime));
+			aircraft2Projection.setPos(aircraft2ProjX, aircraft2ProjY, aircraft2ProjZ);
 
 			//calculate airspace needed around aircraft 1
 			int x1Min = aircraft1Projection.getXPos() - HORIZONTAL_CONSTRAINT;
@@ -77,21 +111,6 @@ void ATCSystem::checkViolations(std::vector<Aircraft>* radarOutput)
 			int y2Max = aircraft2Projection.getYPos() + HORIZONTAL_CONSTRAINT;
 			int z2Min = aircraft2Projection.getZPos() - VERTICAL_CONSTRAINT;
 			int z2Max = aircraft2Projection.getZPos() + VERTICAL_CONSTRAINT;
-
-			//i know this is disgusting
-			// predict N seconds ahead of time for aircraft 1
-			aircraft1Projection.setPos(
-					(radarFindings[i].getXPos() + (radarFindings[i].getXSpeed() * currentPredictionTimeSeconds)),
-					(radarFindings[i].getYPos() + (radarFindings[i].getYSpeed() * currentPredictionTimeSeconds)),
-					(radarFindings[i].getZPos() + (radarFindings[i].getZSpeed() * currentPredictionTimeSeconds))
-			);
-
-			// predict N seconds ahead of time for aircraft 1
-			aircraft2Projection.setPos(
-					(radarFindings[j].getXPos() + (radarFindings[j].getXSpeed() * currentPredictionTimeSeconds)),
-					(radarFindings[j].getYPos() + (radarFindings[j].getYSpeed() * currentPredictionTimeSeconds)),
-					(radarFindings[j].getZPos() + (radarFindings[j].getZSpeed() * currentPredictionTimeSeconds))
-			);
 
 			//if two boxes overlap
 			if ((x1Max >= x2Min && x2Max >= x1Min)
@@ -121,8 +140,6 @@ void ATCSystem::checkViolations(std::vector<Aircraft>* radarOutput)
 				if(reply.received == false){
 					perror("No reply from display");
 				}
-
-				// TODO: Send violation to operator
 			}
 
 		}
@@ -130,21 +147,60 @@ void ATCSystem::checkViolations(std::vector<Aircraft>* radarOutput)
 }
 
 // Gives a log statement of the airspace
-void ATCSystem::logState()
+void ATCSystem::logState(union sigval sv)
 {
-	// Should save the state of the air space every 30 seconds in a log file
+    ATCSystem* ATCSys = static_cast<ATCSystem*>(sv.sival_ptr);
+
+    {
+        std::lock_guard<std::mutex> guard(coutMutex);
+        std::cout << "ATCSystem: Logging state" << std::endl;
+    }
+
+    // Open the log file in append mode
+    int fd = open("/data/home/qnxuser/displaylog.txt", O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR | S_IXUSR);
+    if (fd == -1) {
+        perror("ATCSystem: Cannot open log file");
+        return; // Exit the function if the file cannot be opened
+    }
+
+    // Create a copy of the radar data to avoid modifying shared state
+    std::vector<Aircraft> radarDataCopy;
+    {
+        std::lock_guard<std::mutex> guard(ATCSystemRadarData); // Assuming ATCSystemRadarData is a mutex for radarData
+        radarDataCopy = ATCSys->radarData;
+    }
+
+    // Generate the display string
+    std::string displayString = ATCSys->display.buildGrid(radarDataCopy);
+
+    // Write the string to the file
+    ssize_t bytesWritten = write(fd, displayString.c_str(), displayString.size());
+    if (bytesWritten == -1) {
+        perror("ATCSystem: Error writing to log file");
+    } else {
+        {
+            std::lock_guard<std::mutex> guard(coutMutex);
+            std::cout << "ATCSystem: Successfully logged state to file." << std::endl;
+        }
+    }
+
+    // Close the file
+    if (close(fd) == -1) {
+        perror("ATCSystem: Error closing log file");
+    }
 }
+
 
 void ATCSystem::monitorAirspace(union sigval sv){
 	ATCSystem* ATCSys = static_cast<ATCSystem*>(sv.sival_ptr);
 
-	// get info of all flights from the radar
+	// Get info of all flights from the radar
 	std::vector<Aircraft> radarFindings = ATCSys->radar.runRadar();
 
-	// check for airspace violations
+	// Check for airspace violations
 	ATCSys->checkViolations(&radarFindings);
 
-	// send radar data to the display TODO NEED TO SEND ONLY EVERY 5 SECONDS
+	// Send radar data to the display
 	std::string channelName = "radar_to_display";
 	int coid = name_open(channelName.c_str(), 0);
 	if (coid == -1) {
@@ -175,15 +231,14 @@ void* ATCSystem::start() {
 		std::cout << "ATC System started" << std::endl;
 	}
 
-	//start timers for
-		//collision check (1 second)
-			//PSR, SSR, check
-				// NO MORE PSR, NOT WORTH THE HEADACHE
-		//sending data to DataDisplay (1 second)
-		//logging info to text file (30 seconds)
+	// Delete past log file
+	deleteLogFile();
 
+	// Start thread for listening for prediction time change
+	pthread_t ATCSysListenerThread;
+	pthread_create(&ATCSysListenerThread, NULL, &ATCSystem::startListenerThread, this);
 
-
+	// Start timer for collision checking
 	timer_t collisionCheck_timer_id;
 	struct sigevent sevC;
 	struct itimerspec itsC;
@@ -207,10 +262,68 @@ void* ATCSystem::start() {
 		std::cerr << "Error setting timer for ATCSystem Collision Check: " << strerror(errno) << std::endl;
 	}
 
+	// TODO start timer for file logging every 30 seconds
+	timer_t log30_timer_id;
+	struct sigevent sevL;
+	struct itimerspec itsL;
+
+	sevL.sigev_notify = SIGEV_THREAD;
+	sevL.sigev_notify_function = ATCSystem::logState;
+	sevL.sigev_value.sival_ptr = this;
+	sevL.sigev_notify_attributes = nullptr;
+
+	if(timer_create(CLOCK_REALTIME, &sevL, &log30_timer_id) == -1){
+		std::cerr << "Error creating timer for ATCSystem 30 second display log: " << strerror(errno) << std::endl;
+	}
+
+	itsL.it_value.tv_sec = 30;
+	itsL.it_value.tv_nsec = 0;
+	itsL.it_interval.tv_sec = 30;
+	itsL.it_interval.tv_nsec = 0;
+
+	if(timer_settime(log30_timer_id, 0, &itsL, nullptr) == -1){
+		std::cerr << "Error setting timer for ATC 30 second display log: " << strerror(errno) << std::endl;
+	}
+
 	return nullptr;
+
+}
+
+void* ATCSystem::startListener(){
+	std::string channelName = "commsys_to_atcsystem";
+	name_attach_t *attach = name_attach(NULL, channelName.c_str(), 0);
+	if(attach == NULL){
+		perror("name_attach");
+	}
+
+	int rcvid;
+	changepredtime_cmd msg;
+
+	while(true){
+		rcvid = MsgReceive(attach->chid, &msg, sizeof(msg), NULL);
+		if(rcvid == -1){
+			perror("MsgReceive");
+		}
+
+		{
+			std::lock_guard<std::mutex> guard(coutMutex);
+			std::cout << "ATCSystem: Received request to change prediction time. " << std::endl;
+		}
+
+		{
+			std::lock_guard<std::mutex> guard(predTimeMutex);
+			this->setPredTime(msg.predTime);
+		}
+
+		MsgReply(rcvid, EOK, NULL, 0);
+	}
 
 }
 
 void* ATCSystem::startThread(void* context){
 	return static_cast<ATCSystem*>(context)->start();
+}
+
+void* ATCSystem::startListenerThread(void* context){
+	return static_cast<ATCSystem*>(context)->startListener();
 }
