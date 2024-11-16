@@ -15,6 +15,7 @@ public:
 
 	// Renders Aircraft positions from the list
     void renderGrid(std::vector<Aircraft> givenAircraftData);
+    std::string buildGrid(std::vector<Aircraft> givenAircraftData);
 
 
     void* start();

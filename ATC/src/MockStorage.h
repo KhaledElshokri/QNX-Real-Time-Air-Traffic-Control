@@ -4,8 +4,9 @@
 using namespace std;
 
 /* Instead of storing the files in the VM, we do it programatically.
-   Doing it here avoids each teammate needing to type in each file
-   individually into the VMBox terminal 							*/
+ * Doing it here avoids each teammate needing to type in each file
+ * individually into the VMBox terminal
+ */
 
 /*
  * To check collisions, duplicate an entry and change its ID.
@@ -13,57 +14,35 @@ using namespace std;
  */
 
 /*	Format of string:
-  	EntryTime, ID, X, Y, Z, SpeedX, SpeedY, SpeedZ                  	*/
+ * 	EntryTime, ID, X, Y, Z, SpeedX, SpeedY, SpeedZ
+ */
 
 class MockStorage {
-
-
-
 public:
 
 	MockStorage(){};
 
-	// right now, low traffic shouldnt have a predicted collision
+	// Low traffic shouldnt have a predicted collision at all
 	string lowTraffic =
 		"0, 101, 5000, 2000, 15000, 250, -20, 30;\n"
 		"60, 1350, 45000, 30000, 12500, -20, 255, 25;\n"
 		"65, 1472, 80000, 14000, 11500, 0, 350, 35;\n"
 		"70, 1586, 8000, 75000, 13000, 260, -10, 20;\n";
 
+	// No predicted collision at the momement, predicted collision in X time
 	string mediumTraffic =
-		"0, 101, 5000, 2000, 10000, 250, -20, 30;\n"
-		"5, 102, 5050, 2050, 9950, 260, -15, 25;\n"
-		"10, 103, 5100, 2100, 9900, 255, -18, 28;\n"
-		"15, 104, 5200, 2200, 9850, 250, -10, 30;\n"
-		"20, 201, 6000, 2300, 9900, 245, -12, 32;\n"
-		"25, 202, 6100, 2400, 9800, 250, -10, 35;\n"
-		"30, 301, 5000, 3000, 10000, 260, -20, 30;\n"
-		"35, 302, 5050, 3050, 9950, 265, -22, 25;\n"
-		"40, 401, 8000, 2500, 12000, 255, -15, 28;\n"
-		"45, 402, 8100, 2550, 11950, 260, -10, 20;\n"
-		"50, 501, 9000, 2200, 13000, 270, -18, 25;\n"
-		"55, 502, 9100, 2300, 12950, 265, -20, 30;\n"
-		"60, 601, 7000, 2700, 11500, 250, -15, 35;\n"
-		"65, 602, 7100, 2750, 11450, 255, -10, 32;\n"
-		"70, 701, 7500, 2800, 10500, 260, -5, 20;\n";
+		"0, 101, 5000, 2000, 15000, 250, -20, 30;\n"
+		"60, 1350, 45000, 30000, 12500, -20, 255, 25;\n"
+		"65, 1472, 80000, 14000, 11500, 0, 350, 35;\n"
+		"70, 1586, 8000, 75000, 13000, 260, -10, 20;\n"
+		"70, 102, 0, 0, 20000, 0, 500, 0;\n"
+		"75, 103, 0, 25000, 20000, 0, -500, 0;\n";
 
+	// Predicted collision immediately
 	string highTraffic =
-		"0, 101, 5000, 2000, 10000, 250, -20, 30;\n"
-		"5, 102, 5050, 2050, 9950, 260, -15, 25;\n"
-		"10, 103, 5100, 2100, 9900, 255, -18, 28;\n"
-		"15, 104, 5200, 2200, 9850, 250, -10, 30;\n"
-		"20, 201, 6000, 2300, 9900, 245, -12, 32;\n"
-		"25, 202, 6100, 2400, 9800, 250, -10, 35;\n"
-		"30, 301, 5000, 3000, 10000, 260, -20, 30;\n"
-		"35, 302, 5050, 3050, 9950, 265, -22, 25;\n"
-		"40, 401, 8000, 2500, 12000, 255, -15, 28;\n"
-		"45, 402, 8100, 2550, 11950, 260, -10, 20;\n"
-		"50, 501, 9000, 2200, 13000, 270, -18, 25;\n"
-		"55, 502, 9100, 2300, 12950, 265, -20, 30;\n"
-		"60, 601, 7000, 2700, 11500, 250, -15, 35;\n"
-		"65, 602, 7100, 2750, 11450, 255, -10, 32;\n"
-		"70, 701, 7500, 2800, 10500, 260, -5, 20;\n";
+		"0, 101, 5000, 2000, 10000, 250, -20, 30;\n";
 
+	// Its a party in the corner of the map!
 	string congestedTraffic =
 		"0, 101, 5000, 2000, 10000, 250, -20, 30;\n"
 		"1, 102, 5005, 2005, 9995, 252, -19, 29;\n"

@@ -56,6 +56,12 @@ public:
     	//it returns a void* because its a generic pointer, and matches the type needed by pthread_start(...)
     static void* startThread(void* context);
     static void* startCommListenerThread(void* context);
+
+    /*
+     * Note: We need to have both a static startThread and then a start() method. This is because
+     * pthread_create expects a static method to start the thread. We then use that static method
+     * to start a non-static method, removing its restrictions.
+     */
 };
 
 #endif /* AIRCRAFT_H_ */

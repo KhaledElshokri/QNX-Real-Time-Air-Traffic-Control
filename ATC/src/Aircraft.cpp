@@ -199,7 +199,6 @@ void* Aircraft::startCommListener(){
 			std::cout << "Aircraft: Received request to change speed. " << std::endl;
 		}
 
-		msg.received = true;
 		this->setSpeed(msg.xSpeed, msg.ySpeed, msg.zSpeed);
 
 		MsgReply(rcvid, EOK, NULL, 0);

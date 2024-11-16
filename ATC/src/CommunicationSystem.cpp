@@ -69,12 +69,6 @@ int CommunicationSystem::send(int R, std::vector<std::string> m)
 			perror("name_open: commsys_to_radar:");
 		}
 
-
-		{ //DEBUG
-			std::lock_guard<std::mutex> guard(coutMutex);
-			std::cout << "COMM SYS DEBUG: Gets here 1 " << std::endl;
-		}
-
 		showaircrafts_cmd msg;
 		msg.received = false;
 		int status = MsgSend(coid, &msg, sizeof(msg), NULL, 0);
@@ -99,12 +93,24 @@ int CommunicationSystem::send(int R, std::vector<std::string> m)
 		msg.zSpeed = std::stof(m[4]);
 		int status = MsgSend(coid, &msg, sizeof(msg), NULL, 0);
 		if(status == -1) {
-			perror("MsgSend");
+			perror("MsgSend: aircraft_commsys:");
 		}
 
 		return 0;
 	} else if (m[0] == CHANGE_PRED_TIME_CMD) {
+		std::string channelName = "commsys_to_atcsystem";
+		int coid = name_open(channelName.c_str(), 0);
+		if(coid == -1){
+			perror("name_open: commsys_to_atcsystem: ");
+		}
+
 		changepredtime_cmd msg;
+		msg.received = false;
+		msg.predTime = std::stoi(m[1]);
+		int status = MsgSend(coid, &msg, sizeof(msg), NULL, 0);
+		if(status == -1) {
+			perror("MsgSend: commsys_to_atcsystem");
+		}
 
 		return 0;
 	};
