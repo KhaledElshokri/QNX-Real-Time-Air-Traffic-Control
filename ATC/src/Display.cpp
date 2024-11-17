@@ -1,13 +1,21 @@
-#include "Display.h"
 #include <mutex>
 #include <iostream>
 #include <unistd.h>
 #include <ctime>
 #include <sys/dispatch.h>
-#include "Aircraft.h"
 #include <vector>
+#include <chrono>
+
+#include "Aircraft.h"
+#include "Display.h"
 
 extern std::mutex coutMutex;
+extern std::chrono::steady_clock::time_point programStartTime;
+
+/* RESPONSIBILITIES
+ *  - Listens for radar to tell it to Display::renderGrid() to the console
+ *  - Listens for the ATCSystem to tell it to return Display::buildGrid(), which is a string to save to a file.
+*/
 
 typedef struct {
 	std::vector<Aircraft> aircraftData;
@@ -20,14 +28,13 @@ typedef struct{
 	bool received;
 } violation_msg;
 
-/* Responsible for:
-	- Shows incoming collisions
-	- Simple 2d grid
-*/
+inline int getElapsedTime() {
+    auto now = std::chrono::steady_clock::now();
+    return std::chrono::duration_cast<std::chrono::seconds>(now - programStartTime).count();
+}
+
 
 // Renders Aircraft positions from the list
-
-
 void Display::renderGrid(std::vector<Aircraft> aircraftData)
 {
 //	std::vector<Aircraft>& aircraftData = *givenAircraftData; //deref parameter
@@ -36,12 +43,12 @@ void Display::renderGrid(std::vector<Aircraft> aircraftData)
 	 * Actual size is 100,000 by 100,000 (X by Y)
 	 * with 20 row and column size, each cell is 5,000 x 5,000
 	 *
-	 * The grids 0,0is in the bottom left corner
+	 * The grids 0,0 is in the bottom left corner
 	 *
 	 * . is empty, char value quantity of aircraft in the space
 	 * 				^	Because if this, if there are over 9 aircraft in the
 	 * 					5000x5000 square, it will get incremented past the
-	 * 					0 - 9 numerical symbols. It doens't break, just
+	 * 					0 - 9 numerical symbols in ASCII. It doens't break, just
 	 * 					becomes unreadable
 	 */
 
@@ -49,7 +56,7 @@ void Display::renderGrid(std::vector<Aircraft> aircraftData)
 	int rowSize = 20, columnSize = 20;
 	int cellSize = Size/rowSize;
 
-	// create grid and initialize to all .'s
+	// Create grid and initialize to all .'s
 	char grid[rowSize][columnSize];
 	for (int i = 0; i < rowSize; ++i) {
 	    for (int j = 0; j < columnSize; ++j) {
@@ -59,27 +66,28 @@ void Display::renderGrid(std::vector<Aircraft> aircraftData)
 
 	int xPosInGrid, yPosInGrid;
 
-	//put aircraf locations into grid
+	// Put aircraf locations into grid
 	for(int i = 0; i < aircraftData.size(); i++){
-		xPosInGrid = (aircraftData[i].getXPos())/cellSize;
-		yPosInGrid = (aircraftData[i].getYPos())/cellSize;
+		if(aircraftData[i].getEntryTime() <= getElapsedTime()){
+			xPosInGrid = (aircraftData[i].getXPos())/cellSize;
+			yPosInGrid = (aircraftData[i].getYPos())/cellSize;
 
-		if(grid[xPosInGrid][yPosInGrid] == '.'){
-			grid[xPosInGrid][yPosInGrid] = '1';
-		}else{
-			grid[xPosInGrid][yPosInGrid] = (grid[xPosInGrid][yPosInGrid] + 1);
+			if(grid[xPosInGrid][yPosInGrid] == '.'){
+				grid[xPosInGrid][yPosInGrid] = '1';
+			}else{
+				grid[xPosInGrid][yPosInGrid] = (grid[xPosInGrid][yPosInGrid] + 1);
+			}
 		}
-
 	}
 
-	//render grid
+	// Render grid to cout
 	{
 		std::lock_guard<std::mutex> guard(coutMutex);
-		for (int i = rowSize - 1; i >= 0; --i) {  // Start from the bottom row
-		    for (int j = 0; j < columnSize; ++j) {
-		        std::cout << grid[i][j] << ' ';   // Print each element followed by a space for readability
-		    }
-		    std::cout << std::endl;               // Move to the next line after each row
+		for (int j = columnSize - 1; j >= 0; --j) {
+			for (int i = 0; i < rowSize; ++i) {
+				std::cout << grid[i][j] << ' ';
+			}
+			std::cout << std::endl;
 		}
 		std::cout << "\n\n\n" << std::endl;
 	}
@@ -92,7 +100,7 @@ std::string Display::buildGrid(std::vector<Aircraft> aircraftData)
     int rowSize = 20, columnSize = 20;
     int cellSize = Size / rowSize;
 
-    // Create grid and initialize to all '.' characters
+    // Initialize grid to all '.'s
     char grid[rowSize][columnSize];
     for (int i = 0; i < rowSize; ++i) {
         for (int j = 0; j < columnSize; ++j) {
@@ -104,20 +112,22 @@ std::string Display::buildGrid(std::vector<Aircraft> aircraftData)
 
     // Populate grid with aircraft locations
     for (int i = 0; i < aircraftData.size(); i++) {
-        xPosInGrid = (aircraftData[i].getXPos()) / cellSize;
-        yPosInGrid = (aircraftData[i].getYPos()) / cellSize;
+    	if(aircraftData[i].getEntryTime() <= getElapsedTime()){
+			xPosInGrid = (aircraftData[i].getXPos()) / cellSize;
+			yPosInGrid = (aircraftData[i].getYPos()) / cellSize;
 
-        if (grid[xPosInGrid][yPosInGrid] == '.') {
-            grid[xPosInGrid][yPosInGrid] = '1';
-        } else {
-            grid[xPosInGrid][yPosInGrid] = (grid[xPosInGrid][yPosInGrid] + 1);
-        }
+			if (grid[xPosInGrid][yPosInGrid] == '.') {
+				grid[xPosInGrid][yPosInGrid] = '1';
+			} else {
+				grid[xPosInGrid][yPosInGrid] = (grid[xPosInGrid][yPosInGrid] + 1);
+			}
+    	}
     }
 
     // Build the grid as a string
     std::string gridString;
-    for (int i = rowSize - 1; i >= 0; --i) {
-        for (int j = 0; j < columnSize; ++j) {
+    for (int j = columnSize - 1; j >= 0; --j) {
+        for (int i = 0; i < rowSize; ++i) {
             gridString += grid[i][j];
             gridString += ' ';
         }
@@ -142,7 +152,7 @@ void* Display::start(){
 	pthread_t displayViolationListenerThread;
 	pthread_create(&displayViolationListenerThread, NULL, &Display::startViolationListenerThread, this);
 
-
+	return nullptr;
 }
 
 void* Display::startThread(void* context){

@@ -8,12 +8,11 @@
 #include "Aircraft.h"
 #include "CommunicationSystem.h"
 
-/* Responsible for:
-	- Transmission of controller commands to the specified aircraft.
-	- To send command "m" to aircraft "R" over the communication subsystem, the computer system emits the following command: send(R,m)
- */
-
-/*
+/* RESPONSIBILITIES
+ *	- OperatorConsole triggers the CommunicationSystem::send(R, m) method, which
+ *		sends the appropriate command by IPC message to the appropriate component
+ *	- Listens for responses from the radar for showaircrafts, and prints them to console.
+ *
  * COMMANDS
  * 		1. Show all info about all aircraft
  * 			CMD: showaircrafts

@@ -26,6 +26,7 @@ public:
 	float getXSpeed() const { return mSpeedX; }
 	float getYSpeed() const { return mSpeedY; }
 	float getZSpeed() const { return mSpeedZ; }
+	int getEntryTime() const { return mEntryTime; }
 	CommunicationSystem getCommSystem() const { return commSystem; }
 
 	void setXPos(float iX) { mX = iX; }
@@ -42,7 +43,6 @@ public:
 
     // Aircraft constructor
     Aircraft(int iEntryTime, int iId, float iX, float iY, float iZ, float iSpeedX, float iSpeedY, float iSpeedZ, CommunicationSystem iCommSystem);
-    Aircraft(int iId, float iX, float iY, float iZ, float iSpeedX, float iSpeedY, float iSpeedZ, CommunicationSystem iCommSystem);
     // Getter for ID
 
     // Outputs a string to the radar

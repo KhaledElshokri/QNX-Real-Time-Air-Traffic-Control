@@ -6,14 +6,13 @@
 #include <sys/dispatch.h>
 #include "ATCSystem.h"
 
-/*this is the Computer System
- Responsible for:
-	- Does periodic computations to determine if there is or will be a violation of airspace contraints.
-	- Sends alerts/notifications of violation to the operator.
-	- Sends to the Data Display to show on the screen of the controller:
-		- ID of aircraft
-		- Position of aircraft
-	- Stores info into log file every 30 seconds
+/* RESPONSIBILITIES
+ * 	- Runs ATCSystem::monitorAirspace() on a 1 second timer.
+ * 		- Gets all aircraft from the Radar::runRadar() method, sends the info to the display to show to the console.
+ * 		- Computes if there will be violations in the future. If there is, will send a message to the display to display violations
+ * 	- Runs ATCSystem::logState() on a 30 second timer.
+ * 		- Logs the current aircraft grid to the VM's internal file system as a TXT file.
+ *  - Starts a child thread which listens for a command to change prediction time. Changes if nessecary.
 */
 
 extern std::mutex coutMutex;
@@ -45,16 +44,10 @@ ATCSystem::ATCSystem(Radar iRadar, Display iDisplay, CommunicationSystem iCommSy
 
 void deleteLogFile() {
     const char* filePath = "/data/home/qnxuser/displaylog.txt";
-
-    if (unlink(filePath) == 0) {
-        std::cout << "File successfully deleted: " << filePath << std::endl;
-    } else {
-        perror("Error deleting file");
-    }
+    unlink(filePath);
 }
 
 // Checks for aircraft violations
-	// If there are violations, it will alert the Operator and DataDisplay
 void ATCSystem::checkViolations(std::vector<Aircraft>* radarOutput)
 {
 	// The constraint to check is if 2 aircrafts are less than 1000 feet apart in hight or
@@ -289,6 +282,7 @@ void* ATCSystem::start() {
 
 }
 
+// Listen for request to change prediction time
 void* ATCSystem::startListener(){
 	std::string channelName = "commsys_to_atcsystem";
 	name_attach_t *attach = name_attach(NULL, channelName.c_str(), 0);

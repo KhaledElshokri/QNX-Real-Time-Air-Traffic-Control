@@ -1,19 +1,26 @@
-#include "Aircraft.h"
 #include <mutex>
 #include <iostream>
 #include <unistd.h>
 #include <ctime>
 #include <sys/dispatch.h>
-#include "CommunicationSystem.h"
+#include <chrono>
 
-/*
+#include "CommunicationSystem.h"
+#include "Aircraft.h"
+
+/* RESPONSIBILITIES
  * Each aircraft has a thread, which runs start();
+ * Each aircraft updates its position every second on a timer
+ * Each aircraft listens for a changespeed command to change its speed
+ * Each aircraft
  */
 
 extern std::mutex coutMutex;
+extern std::chrono::steady_clock::time_point programStartTime;
 
 typedef struct {
-	int flightId;
+	int entryTime;
+	int aircraftID;
 	float X, Y, Z;
 	float mSpeedX, mSpeedY, mSpeedZ;
 	CommunicationSystem commSystem;
@@ -27,6 +34,11 @@ typedef struct {
 	float zSpeed;
 } changespeed_cmd;
 
+inline int getElapsedTime() {
+    auto now = std::chrono::steady_clock::now();
+    return std::chrono::duration_cast<std::chrono::seconds>(now - programStartTime).count();
+}
+
 // Aircraft constructor
 Aircraft::Aircraft(int iEntryTime , int iId, float iX, float iY, float iZ, float iSpeedX, float iSpeedY, float iSpeedZ, CommunicationSystem iCommSystem) :
 	mEntryTime(iEntryTime), mId(iId), mX(iX), mY(iY), mZ(iZ), mSpeedX(iSpeedX), mSpeedY(iSpeedY), mSpeedZ(iSpeedZ), commSystem(iCommSystem)
@@ -34,11 +46,7 @@ Aircraft::Aircraft(int iEntryTime , int iId, float iX, float iY, float iZ, float
 	// Creates each aircraft object from an input text file
 }
 
-Aircraft::Aircraft(int iId, float iX, float iY, float iZ, float iSpeedX, float iSpeedY, float iSpeedZ, CommunicationSystem iCommSystem) :
-	mId(iId), mX(iX), mY(iY), mZ(iZ), mSpeedX(iSpeedX), mSpeedY(iSpeedY), mSpeedZ(iSpeedZ), commSystem(iCommSystem)
-{
-	//constructor for radar to use
-}
+// Debug method, not used in final version
 void Aircraft::coutDebug(){
 	{
 		std::lock_guard<std::mutex> guard(coutMutex);
@@ -58,38 +66,10 @@ void Aircraft::updatePosition(union sigval sv)
 {
 	Aircraft* aircraft = static_cast<Aircraft*>(sv.sival_ptr);
 
-	aircraft->mX += aircraft->mSpeedX;
-	aircraft->mY += aircraft->mSpeedY;
-	aircraft->mZ += aircraft->mSpeedZ;
-
-	// we need to make a mutex lock on the cout, otherwise race condition
-//	std::lock_guard<std::mutex> guard(coutMutex);
-//	std::cout << "Plane mX, mY, mZ: " << aircraft->mX << ", " << aircraft->mY << ", " << aircraft->mZ << std::endl;
-
-}
-
-void Aircraft::respondToRadar(union sigval sv){
-	Aircraft* aircraft = static_cast<Aircraft*>(sv.sival_ptr);
-
-	std::string channelName = "aircraft_" + std::to_string(aircraft->getId());
-	name_attach_t *attach = name_attach(NULL, channelName.c_str(), 0);
-	if (attach == NULL) {
-		perror("name_attach");
-	}
-
-	int rcvid;
-	aircraft_msg msg;
-
-	while(true){
-		rcvid = MsgReceive(attach->chid, &msg, sizeof(msg), NULL);
-		if (rcvid == -1) {
-			perror("MsgReceive");
-		}
-
-		aircraft_msg reply;
-		reply.flightId = aircraft->getId();
-
-		int status = MsgReply(rcvid, 0, &reply, sizeof(reply));
+	if (aircraft->getEntryTime() <= getElapsedTime()) {
+		aircraft->mX += aircraft->mSpeedX;
+		aircraft->mY += aircraft->mSpeedY;
+		aircraft->mZ += aircraft->mSpeedZ;
 	}
 }
 
@@ -105,7 +85,6 @@ void* Aircraft::start()
 
 	// Create timer to update plane location.
 	timer_t plane_timer_id;
-	timer_t plane_msg_timer_id;
 	struct sigevent sev;
 	struct itimerspec its;
 
@@ -154,7 +133,8 @@ void* Aircraft::start()
 		}
 
 		aircraft_msg reply;
-		reply.flightId = this->getId();
+		reply.entryTime = this->getEntryTime();
+		reply.aircraftID = this->getId();
 		reply.X = this->getXPos();
 		reply.Y = this->getYPos();
 		reply.Z = this->getZPos();
