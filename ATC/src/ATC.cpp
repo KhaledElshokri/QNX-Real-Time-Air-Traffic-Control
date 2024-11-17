@@ -4,6 +4,7 @@
 #include <vector>
 #include <unistd.h>
 #include <mutex>
+#include <chrono>
 
 using namespace std;
 
@@ -16,10 +17,13 @@ using namespace std;
 #include "Display.h"
 #include "OperatorConsole.h"
 
-// Global mutex for cout so threads dont all write to it.
-std::mutex coutMutex;
+// Global mutexes to protect critical sections
+std::mutex coutMutex; 			// Technically a shared memory, so we must lock it when threads are writing to it
 std::mutex predTimeMutex;
 std::mutex ATCSystemRadarData;
+
+// Timer to trigger the entry of aircraft
+std::chrono::steady_clock::time_point programStartTime;
 
 void startSystem(string inputOption){
 	vector<Aircraft> initialAircraftList;
@@ -90,8 +94,7 @@ void startSystem(string inputOption){
 	pthread_t commSystemThread;
 	pthread_create(&commSystemThread, NULL, &CommunicationSystem::startThread, &commSystem);
 
-	// Let simulator run for sleep(X) seconds
-	sleep(7);
+	//Simulator will run indefinitely until program is manually stopped.
 
 	for (size_t i = 0; i < initialAircraftList.size(); i++) {
 	    pthread_join(planeThreadArray[i], nullptr);
@@ -106,6 +109,7 @@ void startSystem(string inputOption){
 }
 
 int main() {
+	programStartTime = std::chrono::steady_clock::now();
 
 	// Will have to parse the text file here and file in the the list of
 	// aircrafts then construct the aircraft class with this list

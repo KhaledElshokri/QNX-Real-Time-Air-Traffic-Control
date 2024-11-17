@@ -1,32 +1,25 @@
 #include <algorithm>
 #include <cmath>
 #include <vector>
-#include <mutex>
 #include <iostream>
 #include <unistd.h>
 #include <ctime>
 #include <sys/dispatch.h>
+
 #include "Radar.h"
 #include "Aircraft.h"
 #include "CommunicationSystem.h"
 
-/* Responsible for:
- * This happens once every second
- *	PSR:
- *		- Is a circular radar which sends signals around, and catches them if they reflect,  putting them in a list.
- *	SSR:
- *	- Emits interrogation signals to the PSRs list of planes.
- *	- Transponders on the aircraft receive it, and return it. Their details are shown on the screen:
- *		- Flight ID.
- *		- Aircraft flight level.
- *		- Aircrafts speed. X Y Z
- *		- Aircrafts position. X Y Z
+/*  RESPONSIBILITIES
+ *	- Take a runRadar() request, which sends a message to each aircraft for its info.  This
+ *		is ran every second by the ATCSystem, which is on a 1 second timer.
+ *	- Listen for request from operator for showaircrafts. This triggers runRadar() and returns
+ *		all of the aircrafts data to the operator on the display screen
  */
 
-extern std::mutex coutMutex;
-
 typedef struct {
-	int flightId;
+	int entryTime;
+	int aircraftID;
 	float X, Y, Z;
 	float mSpeedX, mSpeedY, mSpeedZ;
 	CommunicationSystem commSystem;
@@ -63,20 +56,20 @@ std::vector<Aircraft> Radar::runRadar() {
 		}
 
 		aircraft_msg msg;
-		msg.flightId = -1;
+		msg.aircraftID = -1;
 		aircraft_msg reply;
-		reply.flightId = -1;
+		reply.aircraftID = -1;
 		int status = MsgSend(coid, &msg, sizeof(msg), &reply, sizeof(reply));
 		if(status == -1) {
 			perror("MsgSend");
 		}
 
 		//if aircraft didnt reply
-		if(reply.flightId == -1){
+		if(reply.aircraftID == -1){
 			perror("No reply from Aircraft");
 		}
 
-		Aircraft aircraft(reply.flightId, reply.X, reply.Y, reply.Z, reply.mSpeedX, reply.mSpeedY, reply.mSpeedZ, reply.commSystem);
+		Aircraft aircraft(reply.entryTime, reply.aircraftID, reply.X, reply.Y, reply.Z, reply.mSpeedX, reply.mSpeedY, reply.mSpeedZ, reply.commSystem);
 		radarFindings.push_back(aircraft);
 
 		name_close(coid);
